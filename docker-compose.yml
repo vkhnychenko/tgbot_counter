@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.3'
 
 services:
   app:
@@ -8,17 +8,12 @@ services:
     env_file:
       - .env
     depends_on:
-      - redis
-  redis:
-    image: redis
+      - mongodb
+  mongodb:
+    image: mongo:latest
     restart: always
-    container_name: 'redis'
-    command:
-      - 'redis-server'
-      - '--save 60 1'
+    container_name: 'mongodb'
     volumes:
-      - redis_data:/data
-    ports:
-      - '6379:6379'
+      - mongodb_volume:/data/db
 volumes:
-  redis_data:
+  mongodb_volume:
