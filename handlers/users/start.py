@@ -39,7 +39,7 @@ async def bonus_handler(message: types.Message):
         points = result['points']
     if points >= POINTS:
         await message.answer('Бонус получен!Куратор свяжется с вами в ближайшее время.')
-        await bot.send_message(ADMIN_ID, 'Поступил запрос бонуса')
+        await bot.send_message(ADMIN_ID, f'Поступил запрос бонуса от пользователя @{result["username"]}')
         await bot.forward_message(ADMIN_ID, message.chat.id, message.message_id)
         await collection.update_one({'user_id': message.from_user.id},
                                                          {'$set': {'points': points - POINTS}})
@@ -80,5 +80,5 @@ async def all_message_handler(message: types.Message):
                 await collection.insert_one(data)
             else:
                 await collection.update_one({'user_id': user_id},
-                                                           {'$set': {'points': result['points'] + 50}})
+                                                           {'$set': {'points': result['points'] + 1}})
             await message.answer(f'{message.from_user.username} дал пятюню {message.reply_to_message.from_user.username}')
