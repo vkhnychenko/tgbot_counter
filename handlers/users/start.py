@@ -66,8 +66,7 @@ async def all_message_handler(message: types.Message):
         username = message.reply_to_message.from_user.username
         group_name = message.chat.title
         group_id = message.chat.id
-        print(group_name)
-        if (re.search(r'\+', message.text) or re.search(r'👍', message.text)) and user_id != message.from_user.id:
+        if re.search(r'\+', message.text) and user_id != message.from_user.id:
             result = await collection.find_one({'user_id': user_id})
             if result is None:
                 data = {
