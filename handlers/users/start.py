@@ -18,11 +18,11 @@ async def bot_start(message: types.Message):
 
 @dp.message_handler(commands='rating')
 async def rating_handler(message: types.Message):
-    user = await collection.find_one({'user_id': message.from_user.id})
-    if user is None:
-        await message.answer('Вы не имеете рейтинга ни в одной группе')
+    group = await collection.find_one({'group_id': message.chat.id})
+    if group is None:
+        await message.answer('В этой группе еще нет рейтинга')
     else:
-        cursor = collection.find({'group_id': user['group_id']})
+        cursor = collection.find({'group_id': group['group_id']})
         text = '🏆Рейтинг участников🏆\n\n'
         new_list = sorted(await cursor.to_list(length=100), key=itemgetter('points'), reverse=True)
         for document in new_list:
@@ -32,7 +32,7 @@ async def rating_handler(message: types.Message):
 
 @dp.message_handler(commands='bonus')
 async def bonus_handler(message: types.Message):
-    result = await collection.find_one({'user_id': message.from_user.id})
+    result = await collection.find_one({'user_id': message.from_user.id, 'group_id': message.chat.id})
     if result is None:
         points = 0
     else:
@@ -49,14 +49,13 @@ async def bonus_handler(message: types.Message):
 
 @dp.message_handler(commands='stats')
 async def stats_handler(message: types.Message):
-    result = await collection.find_one({'user_id': message.from_user.id})
-    if result is not None:
-        points = result['points']
-    else:
-        points = 0
-    res = 0 if points > POINTS else POINTS - points
-    await message.answer(f'Количество баллов «Пятюня»: {points}\n\n'
-                         f'Для получения бонуса осталось набрать: {res} баллов')
+    result = collection.find({'user_id': message.from_user.id})
+    text = ''
+    for doc in await result.to_list(length=10):
+        res = 0 if doc["points"] > POINTS else POINTS - doc["points"]
+        text += f'Количество баллов «Пятюня» в группе {doc["group_name"]}: {doc["points"]}\n' \
+                f'Для получения бонуса осталось набрать: {res} баллов\n\n'
+    await message.answer(text)
 
 
 @dp.message_handler()
@@ -67,7 +66,7 @@ async def all_message_handler(message: types.Message):
         group_name = message.chat.title
         group_id = message.chat.id
         if re.search(r'\+', message.text) and user_id != message.from_user.id:
-            result = await collection.find_one({'user_id': user_id})
+            result = await collection.find_one({'user_id': user_id, 'group_id': group_id})
             if result is None:
                 data = {
                     "user_id": user_id,
@@ -79,5 +78,5 @@ async def all_message_handler(message: types.Message):
                 await collection.insert_one(data)
             else:
                 await collection.update_one({'user_id': user_id},
-                                                           {'$set': {'points': result['points'] + 1}})
+                                            {'$set': {'points': result['points'] + 1}})
             await message.answer(f'{message.from_user.username} дал пятюню {message.reply_to_message.from_user.username}')

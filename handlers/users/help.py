@@ -13,7 +13,7 @@ async def bot_help(message: types.Message):
         '/start - Начать диалог',
         '/help - Список доступных команд',
         '/stats - Личная статистика',
-        '/rating - Рейтинг группы',
+        '/rating - Показывает рейтинг группы в которой выполняется команда',
         '/bonus - Получить бонус',
     ]
     await message.answer('\n'.join(text))
