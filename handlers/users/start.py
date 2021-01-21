@@ -5,6 +5,9 @@ from operator import itemgetter
 from aiogram import types
 from loader import dp
 import re
+from loguru import logger
+
+logger.add("error.log", format="{time} {level} {message}", level="ERROR", rotation="10 KB", compression="zip", serialize=True)
 
 db = client.counter
 collection = db.counter
@@ -38,11 +41,11 @@ async def bonus_handler(message: types.Message):
     else:
         points = result['points']
     if points >= POINTS:
-        await message.answer('Бонус получен!Куратор свяжется с вами в ближайшее время.')
-        await bot.send_message(ADMIN_ID, f'Поступил запрос бонуса от пользователя @{result["username"]}')
+        await message.answer('Бонус ваш!Напишите, пожалуйста, куратору вашего чата для получения бонуса')
+        await bot.send_message(ADMIN_ID, f'Пользователь получил бонус @{result["username"]}')
         await bot.forward_message(ADMIN_ID, message.chat.id, message.message_id)
-        await collection.update_one({'user_id': message.from_user.id},
-                                                         {'$set': {'points': points - POINTS}})
+        await collection.update_one({'user_id': message.from_user.id, 'group_id': message.chat.id},
+                                    {'$set': {'points': points - POINTS}})
     else:
         await message.answer(f'Недостаточно баллов для получения бонуса. Осталось набрать {POINTS - points} баллов')
 
@@ -51,10 +54,14 @@ async def bonus_handler(message: types.Message):
 async def stats_handler(message: types.Message):
     result = collection.find({'user_id': message.from_user.id})
     text = ''
-    for doc in await result.to_list(length=10):
-        res = 0 if doc["points"] > POINTS else POINTS - doc["points"]
-        text += f'Количество баллов «Пятюня» в группе {doc["group_name"]}: {doc["points"]}\n' \
-                f'Для получения бонуса осталось набрать: {res} баллов\n\n'
+    result_list = await result.to_list(length=10)
+    if not result_list:
+        text = 'Вы еще не имеете рейтинга ни в одной группе'
+    else:
+        for doc in result_list:
+            res = 0 if doc["points"] > POINTS else POINTS - doc["points"]
+            text += f'Количество баллов «Пятюня» в группе {doc["group_name"]}: {doc["points"]}\n' \
+                    f'Для получения бонуса осталось набрать: {res} баллов\n\n'
     await message.answer(text)
 
 
@@ -66,17 +73,21 @@ async def all_message_handler(message: types.Message):
         group_name = message.chat.title
         group_id = message.chat.id
         if re.search(r'\+', message.text) and user_id != message.from_user.id:
-            result = await collection.find_one({'user_id': user_id, 'group_id': group_id})
-            if result is None:
-                data = {
-                    "user_id": user_id,
-                    "username": username,
-                    "group_id": group_id,
-                    "group_name": group_name,
-                    "points": 1
-                }
-                await collection.insert_one(data)
-            else:
-                await collection.update_one({'user_id': user_id},
-                                            {'$set': {'points': result['points'] + 1}})
+            try:
+                result = await collection.find_one({'user_id': user_id, 'group_id': group_id})
+                if result is None:
+                    data = {
+                        "user_id": user_id,
+                        "username": username,
+                        "group_id": group_id,
+                        "group_name": group_name,
+                        "points": 1
+                    }
+                    await collection.insert_one(data)
+                else:
+                    await collection.update_one({'user_id': user_id, 'group_id': group_id},
+                                                {'$set': {'points': result['points'] + 1,
+                                                          'username': username}})
+            except Exception as e:
+                logger.error(e)
             await message.answer(f'{message.from_user.username} дал пятюню {message.reply_to_message.from_user.username}')
