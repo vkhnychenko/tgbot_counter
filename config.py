@@ -1,6 +1,10 @@
 import os
 import motor.motor_asyncio
 from dotenv import load_dotenv
+from loguru import logger
+
+logger.add("error.json", format="{time} {level} {message}", level="ERROR", rotation="1 week", compression="zip", serialize=True)
+
 
 load_dotenv()
 

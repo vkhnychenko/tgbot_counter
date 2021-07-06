@@ -1,13 +1,11 @@
 from aiogram.dispatcher.filters.builtin import CommandStart
 from loader import bot
-from data.config import POINTS, ADMIN_ID, client
+from config import POINTS, ADMIN_ID, client
 from operator import itemgetter
 from aiogram import types
 from loader import dp
 import re
 from loguru import logger
-
-logger.add("error.log", format="{time} {level} {message}", level="ERROR", rotation="10 KB", compression="zip", serialize=True)
 
 db = client.counter
 collection = db.counter
@@ -25,12 +23,15 @@ async def rating_handler(message: types.Message):
     if group is None:
         await message.answer('В этой группе еще нет рейтинга')
     else:
-        cursor = collection.find({'group_id': group['group_id']})
-        text = '🏆Рейтинг участников🏆\n\n'
-        new_list = sorted(await cursor.to_list(length=100), key=itemgetter('points'), reverse=True)
-        for document in new_list:
-            text += f'@{document["username"]} ' + f'({document["points"]})\n'
-        await message.answer(text)
+        try:
+            cursor = collection.find({'group_id': group['group_id']})
+            text = '🏆Рейтинг участников🏆\n\n'
+            new_list = sorted(await cursor.to_list(length=100), key=itemgetter('points'), reverse=True)
+            for document in new_list:
+                text += f'@{document["username"]} ' + f'({document["points"]})\n'
+            await message.answer(text)
+        except Exception as e:
+            logger.error(e)
 
 
 @dp.message_handler(commands='bonus')

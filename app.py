@@ -2,9 +2,7 @@ from loader import bot, storage
 
 
 async def on_startup(dp):
-    import filters
     import middlewares
-    filters.setup(dp)
     middlewares.setup(dp)
 
     from utils.notify_admins import on_startup_notify
