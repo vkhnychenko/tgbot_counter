@@ -10,7 +10,7 @@ services:
     depends_on:
       - mongodb
     volumes:
-      - error.json:/app/error.json
+      - .data:/app/data/
   mongodb:
     image: mongo:latest
     restart: always
